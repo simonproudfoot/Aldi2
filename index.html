@@ -216,6 +216,16 @@
             border-radius: 8px;
             margin-bottom: 10px;
             background: #f8f9fa;
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-image.loading {
+            opacity: 0.5;
+        }
+        
+        .product-image.error {
+            opacity: 1;
+            background: #f8f9fa url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23dee2e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>') center/24px no-repeat;
         }
         
         .product-name {
@@ -308,11 +318,206 @@
             text-decoration: none;
             font-size: 12px;
             margin-top: 8px;
+            margin-right: 8px;
             transition: background 0.2s;
         }
         
         .recipe-link:hover {
             background: #0056b3;
+        }
+        
+        .ingredients-btn {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-top: 8px;
+            transition: background 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .ingredients-btn:hover {
+            background: #218838;
+        }
+        
+        .ingredients-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .ingredients-modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-close:hover {
+            color: #000;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .ingredients-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #007bff;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .matched-ingredients {
+            margin-bottom: 25px;
+        }
+        
+        .unmatched-ingredients {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ingredient-item-detailed {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        
+        .ingredient-item-detailed:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+        
+        .ingredient-details {
+            flex: 1;
+            margin: 0 12px;
+        }
+        
+        .ingredient-original {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .ingredient-matched {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+        
+        .ingredient-quantity {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .ingredient-price-large {
+            font-weight: 600;
+            color: #28a745;
+            font-size: 1.1em;
+            margin-left: auto;
+        }
+        
+        .unmatched-item {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .unmatched-icon {
+            width: 50px;
+            height: 50px;
+            background: #ffeaa7;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .cost-summary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .cost-summary h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        
+        .cost-summary .total-cost {
+            font-size: 24px;
+            font-weight: 700;
         }
         
         .ingredients-section {
@@ -359,6 +564,16 @@
             object-fit: cover;
             border-radius: 4px;
             margin-bottom: 4px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .ingredient-image.loading {
+            opacity: 0.5;
+        }
+        
+        .ingredient-image.error {
+            opacity: 1;
+            background: #f8f9fa url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23dee2e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>') center/16px no-repeat;
         }
         
         .ingredient-name {
@@ -576,6 +791,30 @@
         </div>
     </div>
 
+    <!-- Ingredients Modal -->
+    <div class="ingredients-modal" id="ingredientsModal">
+        <div class="ingredients-modal-content">
+            <button class="modal-close" onclick="closeIngredientsModal()">&times;</button>
+            <div class="modal-title" id="modalTitle">Recipe Ingredients</div>
+            
+            <div class="ingredients-summary" id="ingredientsSummary">
+                <!-- Summary stats will be populated here -->
+            </div>
+            
+            <div class="matched-ingredients" id="matchedIngredients">
+                <!-- Matched ingredients will be populated here -->
+            </div>
+            
+            <div class="unmatched-ingredients" id="unmatchedIngredients">
+                <!-- Unmatched ingredients will be populated here -->
+            </div>
+            
+            <div class="cost-summary" id="costSummary">
+                <!-- Cost summary will be populated here -->
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'http://localhost:8000';
         let currentConversationId = null;
@@ -602,6 +841,27 @@
             updateConversationInfo();
         }
         
+        function handleImageError(img) {
+            img.classList.remove('loading');
+            img.classList.add('error');
+            img.src = ''; // Clear the src to prevent further loading attempts
+        }
+
+        function handleImageLoad(img) {
+            img.classList.remove('loading');
+            img.classList.remove('error');
+        }
+
+        function createImageElement(src, alt, className) {
+            const img = document.createElement('img');
+            img.src = src || '';
+            img.alt = alt || '';
+            img.className = className + ' loading';
+            img.onerror = () => handleImageError(img);
+            img.onload = () => handleImageLoad(img);
+            return img;
+        }
+        
         function addMessage(content, isUser = false, recipes = [], products = [], showContext = false) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -621,9 +881,7 @@
                 const productsHtml = products.map(product => `
                     <div class="product-card" onclick="window.open('${product.url || '#'}', '_blank')">
                         <div class="aldi-badge">ALDI</div>
-                        <img src="${product.image_url || 'https://via.placeholder.com/200x80?text=🛒'}" 
-                             alt="${product.name}" class="product-image"
-                             onerror="this.src='https://via.placeholder.com/200x80?text=🛒'">
+                        ${createImageElement(product.image_url, product.name, 'product-image').outerHTML}
                         <div class="product-name">${product.name}</div>
                         <div class="product-price">£${product.price.toFixed(2)}</div>
                         ${product.category ? `<div class="product-category">${product.category}</div>` : ''}
@@ -644,9 +902,7 @@
                     if (recipe.matched_ingredients && recipe.matched_ingredients.length > 0) {
                         const ingredientItems = recipe.matched_ingredients.slice(0, 6).map(ing => `
                             <a href="${ing.aldi_url || '#'}" target="_blank" class="ingredient-item" title="${ing.matched_to} - £${ing.aldi_price}">
-                                <img src="${ing.aldi_image || 'https://via.placeholder.com/40x40?text=🛒'}" 
-                                     alt="${ing.matched_to}" class="ingredient-image"
-                                     onerror="this.src='https://via.placeholder.com/40x40?text=🛒'">
+                                ${createImageElement(ing.aldi_image, ing.matched_to, 'ingredient-image').outerHTML}
                                 <div class="ingredient-name">${ing.matched_to}</div>
                                 <div class="ingredient-price">£${ing.aldi_price}</div>
                             </a>
@@ -672,7 +928,12 @@
                                 </div>
                             ` : ''}
                             ${ingredientsHtml}
-                            <a href="${recipe.url}" target="_blank" class="recipe-link">View Recipe →</a>
+                            <div style="margin-top: 12px;">
+                                <a href="${recipe.url}" target="_blank" class="recipe-link">View Recipe →</a>
+                                <button class="ingredients-btn" onclick="showIngredients('${recipe.recipe_id || `recipe_${recipe.name.replace(/[^a-zA-Z0-9]/g, '_')}`}', '${recipe.name}')">
+                                    🛒 Ingredients List
+                                </button>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -836,6 +1097,138 @@
             messagesDiv.appendChild(suggestionsDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
+        
+        // Ingredients modal functions
+        async function showIngredients(recipeId, recipeName) {
+            try {
+                console.log('Fetching ingredients for recipe:', recipeId);
+                
+                const response = await fetch(`${API_BASE}/recipe/${recipeId}/ingredients`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Ingredients data:', data);
+                
+                // Update modal title
+                document.getElementById('modalTitle').textContent = `${recipeName} - Ingredients`;
+                
+                // Update summary
+                const summaryHtml = `
+                    <div class="summary-item">
+                        <div class="summary-number">${data.total_ingredients}</div>
+                        <div class="summary-label">Total Ingredients</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" style="color: #28a745;">${data.matched_count}</div>
+                        <div class="summary-label">Found at Aldi</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" style="color: #ffc107;">${data.unmatched_count}</div>
+                        <div class="summary-label">Not Available</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" style="color: #007bff;">${data.match_percentage}%</div>
+                        <div class="summary-label">Match Rate</div>
+                    </div>
+                `;
+                document.getElementById('ingredientsSummary').innerHTML = summaryHtml;
+                
+                // Update matched ingredients
+                let matchedHtml = '';
+                if (data.matched_ingredients.length > 0) {
+                    matchedHtml = `
+                        <div class="section-title">
+                            ✅ Available at Aldi (${data.matched_ingredients.length})
+                        </div>
+                        <div class="products-grid">
+                    `;
+                    
+                    data.matched_ingredients.forEach(ingredient => {
+                        matchedHtml += `
+                            <div class="product-card" onclick="window.open('${ingredient.aldi_url || '#'}', '_blank')">
+                                <div class="aldi-badge">ALDI</div>
+                                ${createImageElement(ingredient.aldi_image, ingredient.aldi_product, 'product-image').outerHTML}
+                                <div class="product-name">${ingredient.aldi_product}</div>
+                                <div class="product-price">£${ingredient.aldi_price.toFixed(2)}</div>
+                                <div class="product-category">${ingredient.ingredient_name}</div>
+                                <a href="${ingredient.aldi_url || '#'}" target="_blank" class="product-link" onclick="event.stopPropagation()">
+                                    View at Aldi →
+                                </a>
+                            </div>
+                        `;
+                    });
+                    
+                    matchedHtml += `</div>`;
+                }
+                document.getElementById('matchedIngredients').innerHTML = matchedHtml;
+                
+                // Update unmatched ingredients
+                let unmatchedHtml = '';
+                if (data.unmatched_ingredients.length > 0) {
+                    unmatchedHtml = `
+                        <div class="section-title">
+                            ⚠️ Not Available in Our Database (${data.unmatched_ingredients.length})
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            These ingredients weren't found in our Aldi product database. You may need to check Aldi directly or find substitutes.
+                        </p>
+                    `;
+                    
+                    data.unmatched_ingredients.forEach(ingredient => {
+                        unmatchedHtml += `
+                            <div class="unmatched-item">
+                                <div class="unmatched-icon">❓</div>
+                                <div class="ingredient-details">
+                                    <div class="ingredient-original">${ingredient.ingredient_name}</div>
+                                    <div class="ingredient-quantity">${ingredient.quantity} ${ingredient.unit}</div>
+                                    <div style="color: #856404; font-size: 12px; margin-top: 4px;">
+                                        Estimated cost: £${ingredient.estimated_cost.toFixed(2)}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('unmatchedIngredients').innerHTML = unmatchedHtml;
+                
+                // Update cost summary
+                const costHtml = `
+                    <h3>Estimated Total Cost</h3>
+                    <div class="total-cost">£${data.estimated_total_cost.toFixed(2)}</div>
+                    <div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">
+                        Based on ${data.matched_count} Aldi products + ${data.unmatched_count} estimates
+                    </div>
+                `;
+                document.getElementById('costSummary').innerHTML = costHtml;
+                
+                // Show modal
+                document.getElementById('ingredientsModal').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error fetching ingredients:', error);
+                alert('Sorry, could not load ingredients for this recipe. Please try again.');
+            }
+        }
+        
+        function closeIngredientsModal() {
+            document.getElementById('ingredientsModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('ingredientsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeIngredientsModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeIngredientsModal();
+            }
+        });
     </script>
 </body>
 </html>

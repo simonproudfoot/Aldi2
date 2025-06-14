@@ -195,7 +195,8 @@ class PineconeRecipeVectorizer:
         important_words = ['free-range', 'organic', 'smoked', 'unsalted', 'wholemeal', 'extra virgin']
         descriptive_words = ['fresh', 'frozen', 'dried', 'chopped', 'diced', 'sliced', 'minced', 'grated', 'crushed', 'ground', 'roughly', 'finely', 'large', 'medium', 'small', 'baby', 'young', 'optional', 'to taste']
         
-        words = text.split()
+        # Split by spaces and hyphens
+        words = re.split(r'[\s-]+', text)
         filtered_words = []
         
         for word in words:
@@ -210,6 +211,9 @@ class PineconeRecipeVectorizer:
         # Join and clean up
         result = ' '.join(filtered_words).strip()
         result = re.sub(r'\s+', ' ', result)
+        
+        # Special case for common hyphenated words
+        result = result.replace('free range', 'free-range')
         
         return result if len(result) > 2 else ""
     
@@ -280,22 +284,32 @@ class PineconeRecipeVectorizer:
         best_score = 0
         best_match = None
         
-        # Simple keyword matching (could be enhanced with embeddings)
-        ingredient_words = set(ingredient_name.lower().split())
+        # Normalize ingredient name for comparison
+        ingredient_name = ingredient_name.lower()
+        ingredient_name = ingredient_name.replace('free range', 'free-range')
+        ingredient_words = set(re.split(r'[\s-]+', ingredient_name))
         
         for product_id, product in self.aldi_products.items():
-            product_words = set(product.name.lower().split())
+            # Normalize product name for comparison
+            product_name = product.name.lower()
+            product_name = product_name.replace('free range', 'free-range')
+            product_words = set(re.split(r'[\s-]+', product_name))
             
             # Calculate word overlap score
             common_words = ingredient_words.intersection(product_words)
             if common_words:
+                # Calculate Jaccard similarity
                 score = len(common_words) / len(ingredient_words.union(product_words))
+                
+                # Bonus for exact matches
+                if ingredient_name in product_name or product_name in ingredient_name:
+                    score += 0.2
                 
                 if score > best_score:
                     best_score = score
                     best_match = {
                         'product_id': product_id,
-                        'score': score
+                        'score': min(score, 1.0)  # Cap at 1.0
                     }
         
         return best_match

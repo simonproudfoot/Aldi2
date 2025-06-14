@@ -1267,14 +1267,48 @@ async def search_products_endpoint(query: str, max_results: int = 5):
 
 @app.get("/recipe/{recipe_id}/ingredients")
 async def get_recipe_ingredients_endpoint(recipe_id: str):
-    """Get detailed ingredients for a specific recipe"""
+    """Get detailed ingredients for a specific recipe with Aldi matching"""
     try:
         ingredients = await get_recipe_ingredients_from_pinecone(recipe_id)
         
+        # Separate matched and unmatched ingredients
+        matched_ingredients = []
+        unmatched_ingredients = []
+        total_estimated_cost = 0.0
+        
+        for ingredient in ingredients:
+            if ingredient['aldi_match'] and ingredient['aldi_price'] > 0:
+                matched_ingredients.append({
+                    'ingredient_name': ingredient['original_text'],
+                    'normalized_name': ingredient['normalized_name'],
+                    'quantity': ingredient['quantity'],
+                    'unit': ingredient['unit'],
+                    'aldi_product': ingredient['aldi_match'],
+                    'aldi_price': ingredient['aldi_price'],
+                    'aldi_url': ingredient['aldi_url'],
+                    'aldi_image': ingredient['aldi_image'],
+                    'match_score': ingredient['match_score']
+                })
+                total_estimated_cost += ingredient['aldi_price']
+            else:
+                unmatched_ingredients.append({
+                    'ingredient_name': ingredient['original_text'],
+                    'normalized_name': ingredient['normalized_name'],
+                    'quantity': ingredient['quantity'],
+                    'unit': ingredient['unit'],
+                    'estimated_cost': 1.50  # Default estimate for missing items
+                })
+                total_estimated_cost += 1.50
+        
         return {
             "recipe_id": recipe_id,
-            "ingredients": ingredients,
-            "total_ingredients": len(ingredients)
+            "matched_ingredients": matched_ingredients,
+            "unmatched_ingredients": unmatched_ingredients,
+            "total_ingredients": len(ingredients),
+            "matched_count": len(matched_ingredients),
+            "unmatched_count": len(unmatched_ingredients),
+            "match_percentage": round((len(matched_ingredients) / len(ingredients)) * 100, 1) if ingredients else 0,
+            "estimated_total_cost": round(total_estimated_cost, 2)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1364,4 +1398,10 @@ async def clean_product_data():
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Aldi Recipe Assistant API...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "chat:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
