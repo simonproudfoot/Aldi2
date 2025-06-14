@@ -1,0 +1,13 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+python-dotenv==1.0.0
+openai==1.3.0
+sentence-transformers==2.2.2
+qdrant-client==1.14.2
+httpx==0.25.1
+fuzzywuzzy==0.18.0
+rapidfuzz==3.6.1
+torch
+numpy
+pinecone==2.2.4
+sentencepiece==0.1.99

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aldi Recipe Assistant - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .conversation-info {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .filter-group input, .filter-group select {
+            padding: 5px 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .new-conversation-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .new-conversation-btn:hover {
+            background: #218838;
+        }
+        
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message.assistant {
+            text-align: left;
+        }
+        
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+        }
+        
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 2px solid #e9ecef;
+        }
+        
+        .recipes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .recipe-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .recipe-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+        
+        /* NEW PRODUCT CARD STYLES */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .product-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #ff6b6b;
+        }
+        
+        .product-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            height: 40px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .product-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: #28a745;
+            margin-bottom: 6px;
+        }
+        
+        .product-category {
+            font-size: 12px;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .product-link {
+            display: block;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            text-align: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .product-link:hover {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .aldi-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff6b6b;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .recipe-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .recipe-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .recipe-cost {
+            font-weight: 600;
+            color: #28a745;
+            font-size: 16px;
+            margin: 8px 0;
+        }
+        
+        .recipe-link {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        
+        .recipe-link:hover {
+            background: #0056b3;
+        }
+        
+        .ingredients-section {
+            margin-top: 12px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 12px;
+        }
+        
+        .ingredients-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+        }
+        
+        .ingredient-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .ingredient-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: #007bff;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .ingredient-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .ingredient-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .ingredient-price {
+            font-size: 11px;
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-area input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .input-area input:focus {
+            border-color: #007bff;
+        }
+        
+        .send-btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dietary-tags {
+            display: flex;
+            gap: 5px;
+            margin: 5px 0;
+            flex-wrap: wrap;
+        }
+        
+        .dietary-tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            color: #666;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+        
+        .example-queries {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .example-query {
+            background: #e9ecef;
+            color: #495057;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .example-query:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .context-indicator {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 12px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="conversation-info" id="conversationInfo">
+                New Conversation
+            </div>
+            <h1>🛒 Aldi Recipe Assistant</h1>
+            <p>Find budget-friendly recipes with intelligent conversation memory</p>
+        </div>
+        
+        <div class="chat-container">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="budget">Max Budget:</label>
+                    <input type="number" id="budget" value="15" min="1" max="50" step="0.5">
+                    <span>£</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="dietary">Dietary:</label>
+                    <select id="dietary" multiple style="min-width: 120px;">
+                        <option value="vegetarian">Vegetarian</option>
+                        <option value="vegan">Vegan</option>
+                        <option value="gluten-free">Gluten-free</option>
+                    </select>
+                </div>
+                
+                <button class="new-conversation-btn" onclick="startNewConversation()">
+                    🆕 New Chat
+                </button>
+            </div>
+            
+            <div class="messages" id="messages">
+                <div class="welcome-message">
+                    <h3>👋 Welcome to your Enhanced AI Recipe Assistant!</h3>
+                    <p>Now with conversation memory! Ask follow-up questions about the recipes I recommend.</p>
+                    
+                    <div class="example-queries">
+                        <div class="example-query" onclick="sendExampleQuery('Find me 4 cheap dinner recipes under £12')">
+                            4 cheap dinners
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('How much is steak at Aldi?')">
+                            Steak prices
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('healthy vegetarian meals for a family')">
+                            Healthy vegetarian meals
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('quick microwave recipes under £6')">
+                            Quick microwave recipes
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Finding the perfect recipes for you...</p>
+            </div>
+            
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Ask for recipes or product prices..."
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                    Send 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentConversationId = null;
+        let messageCount = 0;
+        
+        function updateConversationInfo() {
+            const info = document.getElementById('conversationInfo');
+            if (currentConversationId) {
+                info.textContent = `Chat: ${currentConversationId.split('_')[1]} (${messageCount} messages)`;
+            } else {
+                info.textContent = 'New Conversation';
+            }
+        }
+        
+        function startNewConversation() {
+            currentConversationId = null;
+            messageCount = 0;
+            document.getElementById('messages').innerHTML = `
+                <div class="welcome-message">
+                    <h3>🆕 New Conversation Started!</h3>
+                    <p>Ask me for recipe recommendations and follow-up questions.</p>
+                </div>
+            `;
+            updateConversationInfo();
+        }
+        
+        function addMessage(content, isUser = false, recipes = [], products = [], showContext = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            let messageContent = '';
+            
+            // Add context indicator for follow-up responses
+            if (!isUser && showContext && currentConversationId) {
+                messageContent += `<div class="context-indicator">💬 Responding about your previous recipes</div>`;
+            }
+            
+            messageContent += `<div class="message-content">${content}</div>`;
+            
+            // Add product cards for price queries
+            if (products && products.length > 0) {
+                const productsHtml = products.map(product => `
+                    <div class="product-card" onclick="window.open('${product.url || '#'}', '_blank')">
+                        <div class="aldi-badge">ALDI</div>
+                        <img src="${product.image_url || 'https://via.placeholder.com/200x80?text=🛒'}" 
+                             alt="${product.name}" class="product-image"
+                             onerror="this.src='https://via.placeholder.com/200x80?text=🛒'">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">£${product.price.toFixed(2)}</div>
+                        ${product.category ? `<div class="product-category">${product.category}</div>` : ''}
+                        <a href="${product.url || '#'}" target="_blank" class="product-link" onclick="event.stopPropagation()">
+                            View at Aldi →
+                        </a>
+                    </div>
+                `).join('');
+                
+                messageContent += `<div class="products-grid">${productsHtml}</div>`;
+            }
+            
+            // Add recipe cards for recipe queries
+            if (recipes && recipes.length > 0) {
+                const recipesHtml = recipes.map(recipe => {
+                    // Generate ingredients section if available
+                    let ingredientsHtml = '';
+                    if (recipe.matched_ingredients && recipe.matched_ingredients.length > 0) {
+                        const ingredientItems = recipe.matched_ingredients.slice(0, 6).map(ing => `
+                            <a href="${ing.aldi_url || '#'}" target="_blank" class="ingredient-item" title="${ing.matched_to} - £${ing.aldi_price}">
+                                <img src="${ing.aldi_image || 'https://via.placeholder.com/40x40?text=🛒'}" 
+                                     alt="${ing.matched_to}" class="ingredient-image"
+                                     onerror="this.src='https://via.placeholder.com/40x40?text=🛒'">
+                                <div class="ingredient-name">${ing.matched_to}</div>
+                                <div class="ingredient-price">£${ing.aldi_price}</div>
+                            </a>
+                        `).join('');
+                        
+                        ingredientsHtml = `
+                            <div class="ingredients-section">
+                                <div class="ingredients-title">🛒 Aldi Ingredients (${recipe.matched_ingredients.length} found)</div>
+                                <div class="ingredients-grid">${ingredientItems}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="recipe-card">
+                            <div class="recipe-title">${recipe.name}</div>
+                            <div class="recipe-meta">👨‍🍳 ${recipe.chef} | ⏱️ ${recipe.prep_time}</div>
+                            <div class="recipe-cost">£${recipe.total_cost.toFixed(2)} total (£${recipe.cost_per_serving.toFixed(2)}/serving)</div>
+                            <div class="recipe-meta">🍽️ Serves ${recipe.serves} | 📊 ${Math.round(recipe.match_rate * 100)}% matched</div>
+                            ${recipe.dietary_info && recipe.dietary_info.length > 0 ? `
+                                <div class="dietary-tags">
+                                    ${recipe.dietary_info.map(diet => `<span class="dietary-tag">${diet}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                            ${ingredientsHtml}
+                            <a href="${recipe.url}" target="_blank" class="recipe-link">View Recipe →</a>
+                        </div>
+                    `;
+                }).join('');
+                
+                messageContent += `<div class="recipes-grid">${recipesHtml}</div>`;
+            }
+            
+            messageDiv.innerHTML = messageContent;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Hide welcome message after first message
+            const welcomeMsg = document.querySelector('.welcome-message');
+            if (welcomeMsg && messageCount > 0) welcomeMsg.style.display = 'none';
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const loading = document.getElementById('loading');
+            const budget = document.getElementById('budget').value;
+            const dietary = Array.from(document.getElementById('dietary').selectedOptions).map(opt => opt.value);
+            
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, true);
+            messageCount++;
+            
+            // Clear input and disable send button
+            input.value = '';
+            sendBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                const requestBody = {
+                    message: message,
+                    max_budget: parseFloat(budget),
+                    dietary_restrictions: dietary
+                };
+                
+                // Include conversation ID if we have one
+                if (currentConversationId) {
+                    requestBody.conversation_id = currentConversationId;
+                }
+                
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Update conversation ID
+                currentConversationId = data.conversation_id;
+                messageCount++;
+                updateConversationInfo();
+                
+                // Detect if this is a follow-up response
+                const isFollowUp = message.toLowerCase().includes('these') || 
+                                  message.toLowerCase().includes('them') ||
+                                  message.toLowerCase().includes('contain') ||
+                                  message.toLowerCase().includes('any of');
+                
+                // Add AI response with recipes and/or products
+                addMessage(
+                    data.ai_response, 
+                    false, 
+                    data.recipes || [], 
+                    data.product_results || [], 
+                    isFollowUp
+                );
+                
+                // Update placeholder text based on conversation state
+                updateInputPlaceholder();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage(`❌ Sorry, I'm having trouble connecting to the recipe service. Please make sure the backend is running on port 8000.`, false);
+                messageCount++;
+            } finally {
+                sendBtn.disabled = false;
+                loading.style.display = 'none';
+                updateConversationInfo();
+            }
+        }
+        
+        function updateInputPlaceholder() {
+            const input = document.getElementById('messageInput');
+            if (currentConversationId && messageCount > 1) {
+                input.placeholder = "Ask about the recipes above or request new ones...";
+            } else {
+                input.placeholder = "Ask for recipe recommendations or product prices...";
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function sendExampleQuery(query) {
+            document.getElementById('messageInput').value = query;
+            sendMessage();
+        }
+        
+        // Test API connection on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Connected to Enhanced Recipe API');
+                    console.log('Features:', data.features);
+                } else {
+                    console.log('⚠️ Recipe API not responding properly');
+                }
+            } catch (error) {
+                console.log('❌ Cannot connect to Recipe API. Make sure it\'s running on port 8000');
+            }
+            
+            updateConversationInfo();
+        });
+        
+        // Add some example follow-up questions after recipes are shown
+        function addFollowUpSuggestions() {
+            const messagesDiv = document.getElementById('messages');
+            const suggestionsDiv = document.createElement('div');
+            suggestionsDiv.className = 'message assistant';
+            suggestionsDiv.innerHTML = `
+                <div class="message-content">
+                    <div style="margin-bottom: 10px; font-weight: 500;">💡 Try asking:</div>
+                    <div class="example-queries">
+                        <div class="example-query" onclick="sendExampleQuery('Do any of these contain nuts?')">
+                            Do they contain nuts?
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('Which ones are vegetarian?')">
+                            Which are vegetarian?
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('How long do these take to cook?')">
+                            Cooking times?
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('Find me something different')">
+                            Find something else
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery('How much is chicken at Aldi?')">
+                            Check Aldi prices
+                        </div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(suggestionsDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
