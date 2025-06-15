@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
 import re
+import os
 
 # You'll need to install these packages:
 # pip install selenium beautifulsoup4
@@ -42,12 +43,70 @@ class AldiBrowserScraper:
         self.debug = debug
         self.headless = headless
         self.driver = None
+        self.scraped_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scraped-data')
+        os.makedirs(self.scraped_data_dir, exist_ok=True)
         
-        # Search terms to try
-        self.search_terms = [
-            "meat", "chicken", "beef", "pork", "fish", "salmon",
-            "vegetables", "dairy", "cheese", "milk", "bread", "pasta", "rice", 'canned'
-        ]
+        # Load search terms from JSON file
+        try:
+            json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'search-items.json')
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                self.search_terms = data.get('search_terms', [])
+                if not self.search_terms:
+                    print("⚠️  No search terms found in search-items.json, using default terms")
+                    self.search_terms = [
+                        "meat", "chicken", "beef", "pork", "fish", "salmon",
+                        "vegetables", "dairy", "cheese", "milk", "bread", "pasta", "rice", 'canned'
+                    ]
+        except Exception as e:
+            print(f"⚠️  Error loading search-items.json: {str(e)}")
+            print("Using default search terms")
+            self.search_terms = [
+                "meat", "chicken", "beef", "pork", "fish", "salmon",
+                "vegetables", "dairy", "cheese", "milk", "bread", "pasta", "rice", 'canned'
+            ]
+        
+        # Initialize or load existing products
+        self.products_file = os.path.join(self.scraped_data_dir, 'aldi_products.json')
+        self.existing_products = self._load_existing_products()
+    
+    def _load_existing_products(self) -> List[Product]:
+        """Load existing products from JSON file"""
+        try:
+            if os.path.exists(self.products_file):
+                with open(self.products_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return [Product(**item) for item in data]
+            return []
+        except Exception as e:
+            print(f"⚠️  Error loading existing products: {str(e)}")
+            return []
+    
+    def _save_product(self, product: Product) -> bool:
+        """Save a single product to JSON file"""
+        try:
+            # Check if product already exists
+            for existing in self.existing_products:
+                if (existing.name.lower() == product.name.lower() and 
+                    abs(existing.price - product.price) < 0.01):
+                    if self.debug:
+                        print(f"   ⏭️  Skipping duplicate: {product.name} - £{product.price:.2f}")
+                    return False
+            
+            # Add new product
+            self.existing_products.append(product)
+            
+            # Save to file
+            with open(self.products_file, 'w', encoding='utf-8') as f:
+                json.dump([asdict(p) for p in self.existing_products], f, indent=2, ensure_ascii=False)
+            
+            if self.debug:
+                print(f"   💾 Saved: {product.name} - £{product.price:.2f}")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ Error saving product: {str(e)}")
+            return False
     
     def setup_driver(self):
         """Setup Chrome driver with appropriate options"""
@@ -157,9 +216,15 @@ class AldiBrowserScraper:
                 
                 # Parse products from the loaded HTML
                 page_products = self._parse_products_from_html(html, search_term)
-                products.extend(page_products)
                 
-                print(f"      📦 Found {len(page_products)} products on page {page}")
+                # Save each product immediately
+                new_products = []
+                for product in page_products:
+                    if self._save_product(product):
+                        new_products.append(product)
+                
+                products.extend(new_products)
+                print(f"      📦 Found {len(new_products)} new products on page {page}")
                 
                 time.sleep(2)  # Be respectful between requests
                 
@@ -501,12 +566,13 @@ def main():
     products = scraper.scrape_all_categories(max_categories=max_categories)
     
     if not products:
-        print("\n❌ No products found.")
+        print("\n❌ No new products found.")
         print("\n💡 Possible issues:")
         print("   1. ChromeDriver not installed or not in PATH")
         print("   2. Aldi's website blocking automated browsers")
         print("   3. Network connectivity issues")
         print("   4. Website structure has changed")
+        print("   5. All products were already in the database")
         return
     
     # Analyze the data
@@ -514,24 +580,9 @@ def main():
     analyzer = DataAnalyzer()
     analysis = analyzer.analyze_products(products)
     
-    # Save all data locally
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Save detailed product data as JSON
-    products_filename = f"aldi_products_browser_{timestamp}.json"
-    try:
-        products_data = [asdict(product) for product in products]
-        
-        with open(products_filename, 'w', encoding='utf-8') as f:
-            json.dump(products_data, f, indent=2, ensure_ascii=False)
-        
-        print(f"📄 Product data saved to: {products_filename}")
-        
-    except Exception as e:
-        print(f"❌ Error saving product data: {str(e)}")
-    
     # Save analysis data as JSON
-    analysis_filename = f"aldi_analysis_browser_{timestamp}.json"
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    analysis_filename = os.path.join(scraper.scraped_data_dir, f"aldi_analysis_browser_{timestamp}.json")
     try:
         with open(analysis_filename, 'w', encoding='utf-8') as f:
             json.dump(analysis, f, indent=2, ensure_ascii=False)
@@ -542,7 +593,7 @@ def main():
         print(f"❌ Error saving analysis data: {str(e)}")
     
     # Save and display summary report
-    report_filename = f"aldi_report_browser_{timestamp}.txt"
+    report_filename = os.path.join(scraper.scraped_data_dir, f"aldi_report_browser_{timestamp}.txt")
     try:
         summary_report = analyzer.create_summary_report(products, analysis)
         
