@@ -12,6 +12,7 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
 import re
 from urllib.parse import urljoin, urlparse
+import os
 
 # You'll need to install these packages:
 # pip install selenium beautifulsoup4
@@ -30,6 +31,10 @@ except ImportError:
     print("   You'll also need ChromeDriver: https://chromedriver.chromium.org/")
     exit(1)
 
+# Constants
+SCRAPED_DATA_DIR = "scraped-data"
+RECIPES_FILE = os.path.join(SCRAPED_DATA_DIR, "bbc_recipes.json")
+
 @dataclass
 class Recipe:
     name: str
@@ -40,7 +45,6 @@ class Recipe:
     cook_time: str
     serves: str
     ingredients: List[str]  # Simple list of ingredients
-    method: List[str]  # List of method steps
     dietary_info: List[str]  # Dietary restrictions/info
     category: str  # The search term used to find this recipe
     image_url: str = ""
@@ -53,12 +57,86 @@ class BBCFoodScraper:
         self.driver = None
         self.base_url = "https://www.bbc.co.uk"
         
-        # Recipe search terms to try
-        self.search_terms = [
-            "curry", "pasta", "chicken", "beef", "fish", "vegetarian", "vegan",
-            "dessert", "cake", "soup", "salad", "pizza", "bread", "pie",
-            "stir-fry", "roast", "grill", "casserole", "rice", "noodles", "chinese", "mexican", "spanish", "thai", "breakfast", "air fryer"
-        ]
+        # Ensure scraped-data directory exists
+        os.makedirs(SCRAPED_DATA_DIR, exist_ok=True)
+        
+        # Load search terms from JSON file
+        try:
+            with open('recipe-items.json', 'r') as f:
+                data = json.load(f)
+                self.search_terms = data.get('search_terms', [])
+                if not self.search_terms:
+                    raise ValueError("No search terms found in recipe-items.json")
+        except Exception as e:
+            print(f"❌ Error loading recipe-items.json: {str(e)}")
+            print("Using default search terms...")
+            self.search_terms = [
+                "curry", "pasta", "chicken", "beef", "fish", "vegetarian", "vegan",
+                "dessert", "cake", "soup", "salad", "pizza", "bread", "pie",
+                "stir-fry", "roast", "grill", "casserole", "rice", "noodles", 
+                "chinese", "mexican", "spanish", "thai", "breakfast", "air fryer"
+            ]
+        
+        # Load existing recipes
+        self.existing_recipes = self._load_existing_recipes()
+    
+    def _load_existing_recipes(self) -> Dict[str, Dict]:
+        """Load existing recipes from bbc_recipes.json"""
+        try:
+            if os.path.exists(RECIPES_FILE):
+                with open(RECIPES_FILE, 'r', encoding='utf-8') as f:
+                    recipes = json.load(f)
+                    # Create a dictionary with URL as key for quick lookup
+                    return {recipe['url']: recipe for recipe in recipes}
+            return {}
+        except Exception as e:
+            print(f"❌ Error loading existing recipes: {str(e)}")
+            return {}
+    
+    def _save_recipe(self, recipe: Recipe):
+        """Save a single recipe to bbc_recipes.json"""
+        try:
+            # Convert recipe to dictionary
+            recipe_dict = {
+                'name': recipe.name,
+                'description': recipe.description,
+                'url': recipe.url,
+                'chef': recipe.chef,
+                'prep_time': recipe.prep_time,
+                'cook_time': recipe.cook_time,
+                'serves': recipe.serves,
+                'ingredients': recipe.ingredients,
+                'dietary_info': recipe.dietary_info,
+                'category': recipe.category,
+                'image_url': recipe.image_url,
+                'programme': recipe.programme
+            }
+            
+            # Load existing recipes
+            recipes = []
+            if os.path.exists(RECIPES_FILE):
+                with open(RECIPES_FILE, 'r', encoding='utf-8') as f:
+                    recipes = json.load(f)
+            
+            # Check if recipe already exists
+            for i, existing_recipe in enumerate(recipes):
+                if existing_recipe['url'] == recipe.url:
+                    # Update existing recipe
+                    recipes[i] = recipe_dict
+                    break
+            else:
+                # Add new recipe
+                recipes.append(recipe_dict)
+            
+            # Save updated recipes
+            with open(RECIPES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(recipes, f, indent=2, ensure_ascii=False)
+            
+            # Update existing recipes dictionary
+            self.existing_recipes[recipe.url] = recipe_dict
+            
+        except Exception as e:
+            print(f"❌ Error saving recipe: {str(e)}")
     
     def setup_driver(self):
         """Setup Chrome driver with appropriate options"""
@@ -173,6 +251,11 @@ class BBCFoodScraper:
     def scrape_recipe_details(self, recipe_url: str, category: str) -> Optional[Recipe]:
         """Scrape detailed recipe information from a recipe page"""
         try:
+            # Check if recipe already exists
+            if recipe_url in self.existing_recipes:
+                print(f"      📋 Recipe already exists: {recipe_url}")
+                return None
+            
             print(f"      🍳 Scraping recipe: {recipe_url}")
             
             self.driver.get(recipe_url)
@@ -194,39 +277,14 @@ class BBCFoodScraper:
             # Get the page source
             html = self.driver.page_source
             
-            # Debug: Print part of the HTML to understand structure
-            if self.debug:
-                soup_debug = BeautifulSoup(html, 'html.parser')
-                
-                # Check for ingredients containers
-                ingredients_testid = soup_debug.find('[data-testid="recipe-ingredients"]')
-                method_testid = soup_debug.find('[data-testid="recipe-method"]')
-                
-                print(f"         🔍 Found ingredients with data-testid: {'YES' if ingredients_testid else 'NO'}")
-                print(f"         🔍 Found method with data-testid: {'YES' if method_testid else 'NO'}")
-                
-                # Look for alternative ingredient containers
-                alt_ingredients = soup_debug.find_all(['div', 'section'], class_=lambda x: x and any(term in str(x).lower() for term in ['ingredient', 'recipe']))
-                print(f"         🔍 Found alternative ingredient containers: {len(alt_ingredients)}")
-                
-                # Look for text containing "ingredients"
-                ingredients_headers = soup_debug.find_all(string=lambda x: x and 'ingredient' in x.lower())
-                print(f"         🔍 Found text containing 'ingredients': {len(ingredients_headers)}")
-                
-                # Sample some content to see structure
-                sample_divs = soup_debug.find_all('div', limit=10)
-                for i, div in enumerate(sample_divs):
-                    classes = div.get('class', [])
-                    if classes:
-                        print(f"         📄 Sample div {i}: {' '.join(classes[:2])}")
-            
             # Parse recipe details
             recipe = self._parse_recipe_from_html(html, recipe_url, category)
             
             if recipe:
                 print(f"         ✅ Successfully scraped: {recipe.name}")
                 print(f"         📝 Ingredients found: {len(recipe.ingredients)}")
-                print(f"         📋 Method steps found: {len(recipe.method)}")
+                # Save recipe immediately
+                self._save_recipe(recipe)
             else:
                 print(f"         ❌ Failed to parse recipe details")
             
@@ -260,9 +318,6 @@ class BBCFoodScraper:
             # Ingredients
             ingredients = self._extract_ingredients(soup)
             
-            # Method
-            method = self._extract_method(soup)
-            
             # Dietary info
             dietary_info = self._extract_dietary_info(soup)
             
@@ -281,7 +336,6 @@ class BBCFoodScraper:
                 cook_time=cook_time,
                 serves=serves,
                 ingredients=ingredients,
-                method=method,
                 dietary_info=dietary_info,
                 category=category,
                 image_url=image_url,
@@ -366,16 +420,18 @@ class BBCFoodScraper:
                         list_items = ul.find_all('li', class_=lambda x: x and 'ssrcss-131sxq9-Stack' in x)
                         
                         for item in list_items:
-                            ingredient_text = item.get_text(strip=True)
+                            # Get the text while preserving spaces
+                            ingredient_text = ' '.join(item.get_text().split())
                             if ingredient_text and len(ingredient_text) > 2:
                                 ingredients.append(ingredient_text)
                     else:
                         # Fallback: any li within ul in ingredients container
                         list_items = ul.find_all('li')
-                for item in list_items:
-                    ingredient_text = item.get_text(strip=True)
-                            if ingredient_text and len(ingredient_text) > 2:
-                        ingredients.append(ingredient_text)
+                        for item in list_items:
+                            # Get the text while preserving spaces
+                            text = ' '.join(item.get_text().split())
+                            if text and len(text) > 2:
+                                ingredients.append(text)
             
                 if ingredients:
                     if self.debug:
@@ -411,7 +467,8 @@ class BBCFoodScraper:
                         if target_ul:
                             items = target_ul.find_all('li')
                             for item in items:
-                                text = item.get_text(strip=True)
+                                # Get the text while preserving spaces
+                                text = ' '.join(item.get_text().split())
                                 if text and len(text) > 2:
                                     ingredients.append(text)
                     
@@ -436,15 +493,16 @@ class BBCFoodScraper:
             if self.debug:
                 print(f"         🔍 Trying strategy 3: Analyzing all lists")
             
-                all_lists = soup.find_all('ul')
+            all_lists = soup.find_all('ul')
             ingredient_candidates = []
             
-                for ul in all_lists:
-                    items = ul.find_all('li')
+            for ul in all_lists:
+                items = ul.find_all('li')
                 if len(items) >= 3:  # Likely an ingredient list
                     potential_ingredients = []
-                        for item in items:
-                            text = item.get_text(strip=True)
+                    for item in items:
+                        # Get the text while preserving spaces
+                        text = ' '.join(item.get_text().split())
                         # Filter out navigation and other non-ingredient items
                         if (text and len(text) > 5 and len(text) < 300 and
                             not any(skip in text.lower() for skip in 
@@ -501,152 +559,6 @@ class BBCFoodScraper:
         
         return ingredients
     
-    def _extract_method(self, soup) -> List[str]:
-        """Extract cooking method steps with multiple fallback strategies"""
-        method_steps = []
-        
-        try:
-            # Strategy 1: Look for data-testid="recipe-method"
-            method_container = soup.find('[data-testid="recipe-method"]')
-            
-            if method_container:
-                if self.debug:
-                    print(f"         ✅ Found method container with data-testid")
-                
-                # Look for ordered lists within the method container
-                ordered_lists = method_container.find_all('ol')
-                
-                for ol in ordered_lists:
-                    # Look for the specific BBC structure
-                    if 'ssrcss-1o787j8-OrderedList' in ol.get('class', []):
-                        list_items = ol.find_all('li', class_=lambda x: x and 'ssrcss-131sxq9-Stack' in x)
-                        
-                        for item in list_items:
-                            # Look for the text container within each list item
-                            text_container = item.find('div', class_=lambda x: x and 'ssrcss-k5ghct-ListItemText' in x)
-                            if text_container:
-                                step_text = text_container.get_text(strip=True)
-                                if step_text and len(step_text) > 10:
-                                    method_steps.append(step_text)
-                            else:
-                                # Fallback: get text directly from list item
-                                step_text = item.get_text(strip=True)
-                                if step_text and len(step_text) > 10:
-                                    method_steps.append(step_text)
-                    else:
-                        # Fallback: any li within ol in method container
-                        list_items = ol.find_all('li')
-                        for item in list_items:
-                            step_text = item.get_text(strip=True)
-                            if step_text and len(step_text) > 10:
-                        method_steps.append(step_text)
-            
-                if method_steps:
-                    if self.debug:
-                        print(f"         📋 Strategy 1 success: {len(method_steps)} method steps")
-                        print(f"         📋 Sample: {method_steps[0][:50]}...")
-                    return method_steps
-            
-            # Strategy 2: Look for headings containing "method" followed by lists
-            if self.debug:
-                print(f"         🔍 Trying strategy 2: Looking for method headings")
-            
-            method_headings = soup.find_all(['h1', 'h2', 'h3', 'h4'], 
-                                          string=lambda x: x and 'method' in x.lower())
-            
-            for heading in method_headings:
-                if self.debug:
-                    print(f"         🔍 Found method heading: {heading.get_text()}")
-                
-                # Look for ordered lists after this heading
-                current_element = heading.find_next_sibling()
-                while current_element:
-                    if current_element.name in ['h1', 'h2'] and current_element.get_text().lower() != heading.get_text().lower():
-                        break  # Stop at next major section
-                    
-                    if current_element.name == 'ol' or (current_element.name == 'div' and current_element.find('ol')):
-                        if current_element.name == 'ol':
-                            target_ol = current_element
-                        else:
-                            target_ol = current_element.find('ol')
-                        
-                        if target_ol:
-                            items = target_ol.find_all('li')
-                            for item in items:
-                                text = item.get_text(strip=True)
-                            if text and len(text) > 10:
-                                method_steps.append(text)
-                            break
-                    
-                    current_element = current_element.find_next_sibling()
-                
-                if method_steps:
-                    if self.debug:
-                        print(f"         📋 Strategy 2 success: {len(method_steps)} method steps")
-                    return method_steps
-            
-            # Strategy 3: Look for any ordered lists that seem like methods
-            if self.debug:
-                print(f"         🔍 Trying strategy 3: Analyzing ordered lists")
-            
-            all_ordered_lists = soup.find_all('ol')
-            for ol in all_ordered_lists:
-                items = ol.find_all('li')
-                if len(items) >= 2:  # Likely a method list
-                    potential_steps = []
-                    cooking_words = ['heat', 'add', 'cook', 'stir', 'mix', 'place', 'pour', 'serve', 'season', 'chop', 'slice', 'fry', 'boil', 'simmer', 'bake', 'roast']
-                    
-                    for item in items:
-                        text = item.get_text(strip=True)
-                        # Check for cooking-like content
-                        if (text and len(text) > 20 and len(text) < 2000 and
-                            any(cooking_word in text.lower() for cooking_word in cooking_words)):
-                            potential_steps.append(text)
-                    
-                    # If most items look like cooking steps, use this list
-                    if len(potential_steps) >= max(2, len(items) * 0.7):
-                        method_steps = potential_steps
-                        break
-                
-            if method_steps:
-                if self.debug:
-                    print(f"         📋 Strategy 3 success: {len(method_steps)} method steps")
-                return method_steps
-            
-            # Strategy 4: Look for numbered paragraphs or method-like text
-            if self.debug:
-                print(f"         🔍 Trying strategy 4: Looking for numbered steps")
-                
-            # Look for paragraphs that might be method steps
-                    paragraphs = soup.find_all('p')
-            numbered_steps = []
-            
-                    for p in paragraphs:
-                        text = p.get_text(strip=True)
-                # Look for text that starts with numbers or contains cooking verbs
-                if (text and len(text) > 30 and len(text) < 1000 and
-                            (text[0].isdigit() or 
-                     any(word in text.lower()[:100] for word in 
-                        ['heat the', 'add the', 'cook for', 'stir in', 'place the', 'mix the', 'pour in',
-                         'meanwhile', 'for the', 'preheat', 'season with']))):
-                    numbered_steps.append(text)
-                    
-            if numbered_steps:
-                method_steps = numbered_steps[:20]  # Limit to reasonable number
-                if self.debug:
-                    print(f"         📋 Strategy 4 success: {len(method_steps)} method steps")
-            
-            if self.debug:
-                print(f"         📋 Final method steps count: {len(method_steps)}")
-                if method_steps:
-                    print(f"         📋 Sample step: {method_steps[0][:50]}...")
-            
-        except Exception as e:
-            if self.debug:
-                print(f"         ⚠️  Error extracting method: {str(e)}")
-        
-        return method_steps
-    
     def _extract_dietary_info(self, soup) -> List[str]:
         """Extract dietary information"""
         dietary_info = []
@@ -672,10 +584,16 @@ class BBCFoodScraper:
     def _extract_image_url(self, soup) -> str:
         """Extract recipe image URL"""
         try:
-            # Look for the holding_image class
+            # Look for the hero image with data-testid
+            img_element = soup.find('img', {'data-testid': 'hero-image'})
+            if img_element and img_element.get('src'):
+                return img_element['src']
+            
+            # Fallback to holding_image class if hero image not found
             img_element = soup.find('img', class_='holding_image')
             if img_element and img_element.get('src'):
                 return img_element['src']
+            
             return ""
         except:
             return ""
@@ -785,7 +703,6 @@ class RecipeAnalyzer:
                 'cook_time': recipe.cook_time,
                 'serves': recipe.serves,
                 'ingredients': recipe.ingredients,
-                'method': recipe.method,
                 'dietary_info': recipe.dietary_info,
                 'category': recipe.category,  # Include the search term
                 'image_url': recipe.image_url,
@@ -870,16 +787,16 @@ def main():
     scraper = BBCFoodScraper(headless=True)
     
     try:
-    # Scrape recipes
+        # Scrape recipes
         print("\nStarting recipe scraping...")
-    recipes = scraper.scrape_all_categories(max_categories=max_categories, max_pages=max_pages)
-    
-    if not recipes:
+        recipes = scraper.scrape_all_categories(max_categories=max_categories, max_pages=max_pages)
+        
+        if not recipes:
             print("No recipes found!")
-        return
-    
+            return
+        
         # Save recipes to JSON
-        output_file = 'bbc_recipes.json'
+        output_file = RECIPES_FILE
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump([{
                 'name': r.name,
@@ -890,7 +807,6 @@ def main():
                 'cook_time': r.cook_time,
                 'serves': r.serves,
                 'ingredients': r.ingredients,
-                'method': r.method,
                 'dietary_info': r.dietary_info,
                 'category': r.category,
                 'image_url': r.image_url,
